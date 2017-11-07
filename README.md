@@ -6,62 +6,38 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-Here is my start to sentiment analysis.  This could be used for client notes Chapter 1
-Need 1:4, because we have four lines here.
+Here I am demonstrating how to create a longitudinal data set of journal entries using a simple artificial example.  This example includes two journal entries over two different time points across two different people.  The unit of analysis is the journal entry.
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+id = rep(1:2, 1, each = 2)
+time = rep(1:2, 2)
+journalEntry = rbind("I hate everything and dislike all people", "I'm happy with everything and I love everyone", "I am very negative and sad and unhappy", "I am very positive, happy, and upbeat") 
+testDat = testDat = data.frame(cbind(id, time, journalEntry))
+colnames(testDat) = c("id", "time", "journalEntry")
+testDat$journalEntry = as.character(testDat$journalEntry)
+testDat
+```
+The first step is to break down each journal entry by each word.  We can do this using the unnest tokens function that breaks down each word in each journal entry, but also keeps the person (i.e. id) and time point that each word comes from.  Then we need to gather the lexicon that contains the sentiments, which are valences of positive and negative on a scale of -5 (negative) to 5 (positive).  
 
-The piping has to be in the format otherwise it won't work.
-```{r}
-library(janeaustenr)
-library(dplyr)
-library(stringr)
-library(dplyr)
+Uses this dictionary e.g., Jockers (2017) dictionary.  Keeps the sentence structure and then tags the words with +1 or -1.  Then from those tagged words looks at the four words before and after those words.  Polarized context cluster has a list of neutral, negator, amplifier, and de-amplifier words.  These values are weigthed by the ampliyer and negators 
+
+Figure out how accurate this method is.
+What is the lexicon they are using?
+What is the effect of neutrual words?
+
+```{r message=FALSE, warning=FALSE}
+library(tidyr)
 library(tidytext)
-library(ggplot2)
-text <- c("Because I could not stop for Death -",
-          "He kindly stopped for me -",
-          "The Carriage held but just Ourselves -",
-          "and Immortality")
-textDF = data_frame(line = 1:4, text = text); textDF
-
-textDFPipe = textDF %>%
-  unnest_tokens(word, text)
-
- 
-```
-Next example.  Set the stop words, which are filler type words and get rid of those.  Anti join I am assuming means delete or remove.
-```{r}
-original_books <- austen_books() %>%
-  group_by(book) %>%
-  mutate(linenumber = row_number(),
-         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]",
-                                                 ignore_case = TRUE)))) %>%
-  ungroup()
-
-original_books
-
-tidyBooks = original_books %>%
-  unnest_tokens(word, text)
-head(tidyBooks)
-
-data(stop_words)
-tidyBooks = tidyBooks %>%
-  anti_join(stop_words)
-tidyBooks
-```
-Now we are doing analyses.  First is getting counts
-```{r}
-tidyBooksCount = tidyBooks %>%
-  count(word, sort = TRUE)
-tidyBooksCount
-
-tidyBooks %>%
-  count(word, sort = TRUE) %>%
-  filter(n > 600) %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(word,n)) +
-  geom_col()+
-  xlab("# of Words") +
-  coord_flip()
+library(dplyr)
+library(sentimentr)
+nrc = sentiment(testDat$journalEntry, lexicon::hash_sentiment_nrc)
+nrc = data.frame(nrc$sentiment)
+jockers = sentiment(testDat$journalEntry)
+jockers= data.frame(jockers$sentiment)
+huliu = sentiment(testDat$journalEntry, lexicon::hash_sentiment_huliu)
+huliu = data.frame(huliu$sentiment)
+testDat = cbind(testDat, nrc, jockers, huliu)
+testDat
 
 ```
-Now we want to look 
+
+
